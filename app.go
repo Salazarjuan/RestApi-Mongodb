@@ -1,16 +1,15 @@
 package main
 
 import (
-	"encoding/json"
-	"log"
-	"net/http"
-
-	"gopkg.in/mgo.v2/bson"
-
 	. "./config"
 	. "./dao"
 	. "./models"
+	"encoding/json"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"gopkg.in/mgo.v2/bson"
+	"log"
+	"net/http"
 )
 
 var config = Config{}
@@ -36,6 +35,7 @@ func FindTrackEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateTrackEndPoint(w http.ResponseWriter, r *http.Request) {
+
 	defer r.Body.Close()
 	var track Track
 	if err := json.NewDecoder(r.Body).Decode(&track); err != nil {
@@ -99,12 +99,25 @@ func init() {
 
 func main() {
 	r := mux.NewRouter()
+
 	r.HandleFunc("/tracks", AllTracksEndPoint).Methods("GET")
 	r.HandleFunc("/tracks", CreateTrackEndPoint).Methods("POST")
 	r.HandleFunc("/tracks", UpdateTrackEndPoint).Methods("PUT")
 	r.HandleFunc("/tracks", DeleteTrackEndPoint).Methods("DELETE")
 	r.HandleFunc("/tracks/{id}", FindTrackEndpoint).Methods("GET")
-	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Fatal(err)
-	}
+
+	/*c := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowCredentials: true,
+		AllowedHeaders:[]string{"X-Requested-With"},
+		AllowedMethods: []string{"GET", "HEAD", "POST", "PUT", "OPTIONS"},
+	})*/
+
+	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With"})
+	originsOk := handlers.AllowedOrigins([]string{"*"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+
+	log.Fatal(http.ListenAndServe(":8081", handlers.CORS(originsOk, headersOk, methodsOk)(r)))
+
+
 }
